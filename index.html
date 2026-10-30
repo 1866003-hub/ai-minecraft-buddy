@@ -1,219 +1,75 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Minecraft Buddy</title>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #202830;
-      color: white;
-      text-align: center;
-      padding: 20px;
-    }
-
-    .panel {
-      max-width: 520px;
-      margin: 25px auto;
-      padding: 24px;
-      background: #303b46;
-      border: 2px solid #6b9e52;
-      border-radius: 12px;
-    }
-
-    h1 { color: #8fd16a; }
-
-    button {
-      width: 100%;
-      padding: 13px;
-      margin: 12px 0;
-      border: none;
-      border-radius: 6px;
-      background: #5b913e;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: wait;
-    }
-
-    .relay {
-      margin: 12px 0;
-      padding: 12px;
-      background: #172029;
-      border-radius: 6px;
-      overflow-wrap: anywhere;
-      text-align: left;
-    }
-
-    .address {
-      color: #c5d0da;
-      font-size: 13px;
-    }
-
-    .status {
-      margin-top: 8px;
-      color: #ffd36a;
-    }
-
-    .note {
-      color: #c5d0da;
-      font-size: 13px;
-      line-height: 1.7;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Minecraft Buddy — STEP 4</title>
+<style>
+:root{color-scheme:dark;--bg:#202830;--panel:#303b46;--inner:#172029;--green:#5b913e;--light:#8fd16a;--soft:#c5d0da}
+*{box-sizing:border-box}
+body{margin:0;padding:22px 14px;background:var(--bg);color:#fff;font-family:Arial,sans-serif}
+.panel{max-width:620px;margin:12px auto;padding:24px;background:var(--panel);border:2px solid var(--green);border-radius:12px}
+h1{color:var(--light);text-align:center;font-size:27px}
+h2{font-size:19px}
+.center{text-align:center}
+.note{color:var(--soft);font-size:13px;line-height:1.7}
+label{display:block;margin:13px 0 6px}
+input,select,button{width:100%;padding:12px;border-radius:6px;font-size:16px}
+input,select{background:var(--inner);border:1px solid #777;color:#fff}
+button{margin:10px 0;border:0;background:var(--green);color:white;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.box{padding:13px;background:var(--inner);border-radius:6px;margin:10px 0;overflow-wrap:anywhere}
+.status{font-weight:bold}
+ul{padding-left:22px;line-height:1.8}
+code{overflow-wrap:anywhere;color:#b8dcff}
+</style>
 </head>
-
 <body>
-  <div class="panel">
-    <h1>🤖 AI Minecraft Buddy</h1>
+<main class="panel">
+<h1>🤖 AI Minecraft Buddy</h1>
+<p class="center">君のサバイバルを手伝うAI相棒</p>
+<p class="center">対象：Eaglercraft 1.20.6 WASM-GC</p>
+<h2>STEP 4：参加準備チェック</h2>
+<p class="note center">今回は接続先と参加手順を整理するチェック画面です。未検証の通信パケットを送信せず、結果を正直に表示します。</p>
 
-    <p>AI相棒プロジェクト</p>
-    <p>対象：Eaglercraft 1.20.6 WASM-GC</p>
+<label for="joinCode">共有ワールドのJOINコード（手元で確認するだけ）</label>
+<input id="joinCode" type="password" autocomplete="off" placeholder="JOINコード（保存・送信しません）">
+<label for="relay">ホスト画面に表示されたRelay</label>
+<select id="relay">
+<option value="wss://relay.lax1dude.net/">wss://relay.lax1dude.net/</option>
+<option value="wss://relay.shhnowisnottheti.me/">wss://relay.shhnowisnottheti.me/</option>
+<option value="wss://relay.deev.is/">wss://relay.deev.is/</option>
+</select>
+<button id="check">参加準備を確認</button>
+<div class="box status" id="status" role="status">🔵 待機中</div>
+<div class="box" id="details">まだ確認していません。</div>
 
-    <h3>STEP 2：Relay接続テスト</h3>
-
-    <p class="note">
-      AIプレイヤーを作る前に、通信先へ接続できるか調べます。
-    </p>
-
-    <div id="relayList"></div>
-
-    <button id="testButton">
-      3つのRelayをテスト
-    </button>
-
-    <p id="summary" role="status">
-      🔵 テスト待機中
-    </p>
-
-    <p class="note">
-      このテストはRelayへのWebSocket接続だけを確認します。<br>
-      Minecraftへの参加やAIの動作はまだ実装されていません。
-    </p>
-  </div>
-
-  <script>
-    const relays = [
-      {
-        name: "Relay 1",
-        url: "wss://relay.deev.is/"
-      },
-      {
-        name: "Relay 2",
-        url: "wss://relay.lax1dude.net/"
-      },
-      {
-        name: "Relay 3",
-        url: "wss://relay.shhnowisnottheti.me/"
-      }
-    ];
-
-    const list = document.getElementById("relayList");
-    const button = document.getElementById("testButton");
-    const summary = document.getElementById("summary");
-
-    const statusElements = [];
-
-    relays.forEach((relay) => {
-      const box = document.createElement("div");
-      box.className = "relay";
-
-      const name = document.createElement("strong");
-      name.textContent = relay.name;
-
-      const address = document.createElement("div");
-      address.className = "address";
-      address.textContent = relay.url;
-
-      const status = document.createElement("div");
-      status.className = "status";
-      status.textContent = "⚪ 未テスト";
-
-      box.append(name, address, status);
-      list.appendChild(box);
-
-      statusElements.push(status);
-    });
-
-    function testRelay(relay, statusElement) {
-      return new Promise((resolve) => {
-        let finished = false;
-        let socket;
-
-        const timer = setTimeout(() => {
-          finish("⏳ タイムアウト");
-        }, 8000);
-
-        function finish(message) {
-          if (finished) return;
-          finished = true;
-
-          clearTimeout(timer);
-          statusElement.textContent = message;
-
-          if (socket) {
-            socket.onopen = null;
-            socket.onerror = null;
-            socket.onclose = null;
-
-            try {
-              socket.close();
-            } catch (_) {}
-          }
-
-          resolve(message);
-        }
-
-        statusElement.textContent = "🟡 接続中...";
-
-        try {
-          socket = new WebSocket(relay.url);
-
-          socket.onopen = () => {
-            finish("🟢 WebSocket接続成功");
-          };
-
-          socket.onerror = () => {
-            finish("🔴 接続エラー");
-          };
-
-          socket.onclose = () => {
-            if (!finished) {
-              finish("🔴 接続が閉じられました");
-            }
-          };
-        } catch (error) {
-          finish("🔴 接続を開始できません");
-        }
-      });
-    }
-
-    button.addEventListener("click", async () => {
-      button.disabled = true;
-      summary.textContent = "🟡 テスト実行中...";
-
-      const results = await Promise.all(
-        relays.map((relay, index) =>
-          testRelay(relay, statusElements[index])
-        )
-      );
-
-      const successful = results.filter(
-        result => result.includes("接続成功")
-      ).length;
-
-      summary.textContent =
-        `テスト終了：${successful} / ${relays.length} 接続成功`;
-
-      button.disabled = false;
-    });
-  </script>
+<h2>次に必要なこと</h2>
+<ul>
+<li>ホスト側で共有ワールドを開いたままにする。</li>
+<li>ホスト画面に表示されたRelay URLと、参加側のRelay設定を一致させる。</li>
+<li>参加側クライアントで Multiplayer → Direct Connect → Join Shared World を選び、JOINコードを入力する。</li>
+</ul>
+<p class="note">公開されているEaglercraftの案内では、共有ワールド参加者は同じRelay URLを設定する必要があります。通常の参加フローは、対応クライアントの「Join Shared World」からコードを入力する方法です。</p>
+<p class="note">注意：このページ自体はゲームクライアントではありません。チェックが成功しても、AIはワールドに参加しません。次の本格実装には、君が使っている1.20.6 WASM-GC版に対応するソースコード・ビルド手順の確認が必要です。</p>
+</main>
+<script>
+const codeInput=document.getElementById('joinCode');
+const relay=document.getElementById('relay');
+const status=document.getElementById('status');
+const details=document.getElementById('details');
+document.getElementById('check').addEventListener('click',()=>{
+ const code=codeInput.value.trim();
+ status.textContent=code ? '🟡 準備情報を確認しました（ゲーム未接続）' : '🟠 JOINコードはまだ入力されていません';
+ details.textContent='選択Relay：'+relay.value+'\\nJOINコード：'+(code?'入力あり（このページから送信していません）':'未入力')+'\\n結果：このページからRelayへのハンドシェイクやMinecraft参加処理は実行していません。';
+});
+window.addEventListener('beforeunload',()=>{codeInput.value='';});
+</script>
 </body>
 </html>
+'''
+path = Path("/mnt/data/ai-minecraft-buddy-step4.html")
+path.write_text(html, encoding="utf-8")
+print(f"作成完了: {path} ({path.stat().st_size:,} bytes)")
