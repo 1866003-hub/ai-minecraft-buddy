@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI Minecraft Buddy</title>
 
   <style>
@@ -11,54 +11,55 @@
       background: #202830;
       color: white;
       text-align: center;
-      padding: 24px;
+      padding: 20px;
     }
 
     .panel {
-      max-width: 480px;
-      margin: 30px auto;
+      max-width: 520px;
+      margin: 25px auto;
       padding: 24px;
       background: #303b46;
       border: 2px solid #6b9e52;
       border-radius: 12px;
     }
 
-    h1 {
-      color: #8fd16a;
-    }
-
-    input, button {
-      box-sizing: border-box;
-      width: 100%;
-      padding: 12px;
-      margin-top: 12px;
-      border-radius: 6px;
-      font-size: 16px;
-    }
-
-    input {
-      border: 1px solid #777;
-      background: #172029;
-      color: white;
-    }
+    h1 { color: #8fd16a; }
 
     button {
+      width: 100%;
+      padding: 13px;
+      margin: 12px 0;
       border: none;
+      border-radius: 6px;
       background: #5b913e;
       color: white;
-      cursor: pointer;
+      font-size: 16px;
       font-weight: bold;
+      cursor: pointer;
     }
 
-    button:hover {
-      background: #70aa4d;
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
     }
 
-    #status {
-      margin-top: 20px;
+    .relay {
+      margin: 12px 0;
       padding: 12px;
       background: #172029;
       border-radius: 6px;
+      overflow-wrap: anywhere;
+      text-align: left;
+    }
+
+    .address {
+      color: #c5d0da;
+      font-size: 13px;
+    }
+
+    .status {
+      margin-top: 8px;
+      color: #ffd36a;
     }
 
     .note {
@@ -73,38 +74,145 @@
   <div class="panel">
     <h1>🤖 AI Minecraft Buddy</h1>
 
-    <p>君のサバイバルを手伝うAI相棒</p>
+    <p>AI相棒プロジェクト</p>
+    <p>対象：Eaglercraft 1.20.6 WASM-GC</p>
 
-    <p>対象クライアント：Eaglercraft 1.20.6</p>
-
-    <label for="joinCode">共有ワールドのJOINコード</label>
-    <input
-      id="joinCode"
-      type="password"
-      placeholder="接続機能はまだ未実装"
-      autocomplete="off"
-    >
-
-    <button id="testButton">接続機能を確認</button>
-
-    <div id="status" role="status">
-      🔴 未接続：接続機能の開発前
-    </div>
+    <h3>STEP 2：Relay接続テスト</h3>
 
     <p class="note">
-      現在は操作画面の試作品です。<br>
-      Minecraftへの接続やAIの操作はまだできません。<br>
-      JOINコードは他人に公開しないでください。
+      AIプレイヤーを作る前に、通信先へ接続できるか調べます。
+    </p>
+
+    <div id="relayList"></div>
+
+    <button id="testButton">
+      3つのRelayをテスト
+    </button>
+
+    <p id="summary" role="status">
+      🔵 テスト待機中
+    </p>
+
+    <p class="note">
+      このテストはRelayへのWebSocket接続だけを確認します。<br>
+      Minecraftへの参加やAIの動作はまだ実装されていません。
     </p>
   </div>
 
   <script>
-    const status = document.getElementById("status");
-    const button = document.getElementById("testButton");
+    const relays = [
+      {
+        name: "Relay 1",
+        url: "wss://relay.deev.is/"
+      },
+      {
+        name: "Relay 2",
+        url: "wss://relay.lax1dude.net/"
+      },
+      {
+        name: "Relay 3",
+        url: "wss://relay.shhnowisnottheti.me/"
+      }
+    ];
 
-    button.addEventListener("click", () => {
-      status.textContent =
-        "🛠️ 接続機能は開発中です。まだ接続処理はありません。";
+    const list = document.getElementById("relayList");
+    const button = document.getElementById("testButton");
+    const summary = document.getElementById("summary");
+
+    const statusElements = [];
+
+    relays.forEach((relay) => {
+      const box = document.createElement("div");
+      box.className = "relay";
+
+      const name = document.createElement("strong");
+      name.textContent = relay.name;
+
+      const address = document.createElement("div");
+      address.className = "address";
+      address.textContent = relay.url;
+
+      const status = document.createElement("div");
+      status.className = "status";
+      status.textContent = "⚪ 未テスト";
+
+      box.append(name, address, status);
+      list.appendChild(box);
+
+      statusElements.push(status);
+    });
+
+    function testRelay(relay, statusElement) {
+      return new Promise((resolve) => {
+        let finished = false;
+        let socket;
+
+        const timer = setTimeout(() => {
+          finish("⏳ タイムアウト");
+        }, 8000);
+
+        function finish(message) {
+          if (finished) return;
+          finished = true;
+
+          clearTimeout(timer);
+          statusElement.textContent = message;
+
+          if (socket) {
+            socket.onopen = null;
+            socket.onerror = null;
+            socket.onclose = null;
+
+            try {
+              socket.close();
+            } catch (_) {}
+          }
+
+          resolve(message);
+        }
+
+        statusElement.textContent = "🟡 接続中...";
+
+        try {
+          socket = new WebSocket(relay.url);
+
+          socket.onopen = () => {
+            finish("🟢 WebSocket接続成功");
+          };
+
+          socket.onerror = () => {
+            finish("🔴 接続エラー");
+          };
+
+          socket.onclose = () => {
+            if (!finished) {
+              finish("🔴 接続が閉じられました");
+            }
+          };
+        } catch (error) {
+          finish("🔴 接続を開始できません");
+        }
+      });
+    }
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      summary.textContent = "🟡 テスト実行中...";
+
+      const results = await Promise.all(
+        relays.map((relay, index) =>
+          testRelay(relay, statusElements[index])
+        )
+      );
+
+      const successful = results.filter(
+        result => result.includes("接続成功")
+      ).length;
+
+      summary.textContent =
+        `テスト終了：${successful} / ${relays.length} 接続成功`;
+
+      button.disabled = false;
     });
   </script>
 </body>
