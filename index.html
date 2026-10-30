@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Minecraft Buddy</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #202830;
+      color: white;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .panel {
+      max-width: 480px;
+      margin: 30px auto;
+      padding: 24px;
+      background: #303b46;
+      border: 2px solid #6b9e52;
+      border-radius: 12px;
+    }
+
+    h1 {
+      color: #8fd16a;
+    }
+
+    input, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    input {
+      border: 1px solid #777;
+      background: #172029;
+      color: white;
+    }
+
+    button {
+      border: none;
+      background: #5b913e;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #70aa4d;
+    }
+
+    #status {
+      margin-top: 20px;
+      padding: 12px;
+      background: #172029;
+      border-radius: 6px;
+    }
+
+    .note {
+      color: #c5d0da;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="panel">
+    <h1>🤖 AI Minecraft Buddy</h1>
+
+    <p>君のサバイバルを手伝うAI相棒</p>
+
+    <p>対象クライアント：Eaglercraft 1.20.6</p>
+
+    <label for="joinCode">共有ワールドのJOINコード</label>
+    <input
+      id="joinCode"
+      type="password"
+      placeholder="接続機能はまだ未実装"
+      autocomplete="off"
+    >
+
+    <button id="testButton">接続機能を確認</button>
+
+    <div id="status" role="status">
+      🔴 未接続：接続機能の開発前
+    </div>
+
+    <p class="note">
+      現在は操作画面の試作品です。<br>
+      Minecraftへの接続やAIの操作はまだできません。<br>
+      JOINコードは他人に公開しないでください。
+    </p>
+  </div>
+
+  <script>
+    const status = document.getElementById("status");
+    const button = document.getElementById("testButton");
+
+    button.addEventListener("click", () => {
+      status.textContent =
+        "🛠️ 接続機能は開発中です。まだ接続処理はありません。";
+    });
+  </script>
+</body>
+</html>
